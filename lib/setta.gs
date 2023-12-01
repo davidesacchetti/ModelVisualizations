@@ -1,0 +1,6 @@
+'set imprun setgradsoff'
+'set mpdset gmthighmap'
+'set display color white'
+'set cterp on'
+'set csmooth on'
+'clear'

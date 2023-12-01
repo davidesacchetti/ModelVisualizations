@@ -1,20 +1,22 @@
 # Modifica del 2023.11.10 - Alessio - 1.4
-# introdotta la lettura del file zsfc per avere lo zero termico riferito al livello del mare.
-# adesso richiede in input due ctl, il primo (file 1) template degli ENS members, il secondo (file 2)
-# contentente la zsfc per 1 tempo 1 membro stessa area e risoluzione.
+# * introdotta la lettura del file zsfc per avere lo zero termico riferito al livello del mare.
+#   adesso richiede in input due ctl, il primo (file 1) template degli ENS members, il secondo (file 2)
+#   contentente la zsfc per 1 tempo 1 membro stessa area e risoluzione.
 #
 # Modifica del 2023.11.17 - Davide - 1.4.1
-# lo zero termico viene riferito al livello del mare sse come terzo parametro (_AddOroDeg0) viene passato 1
-# inseriti controlli sulla valorizzazione di fctl e foro
-# introdotto file di opzioni ensviewOpts.gsf
+# * lo zero termico viene riferito al livello del mare sse come terzo parametro (_AddOroDeg0) viene passato 1
+# * inseriti controlli sulla valorizzazione di fctl e foro
+# * introdotto file di opzioni ensviewOpts.gsf
 #
 # Modifica del 2023.11.21 - Davide - 1.5.0
-# sostituiti i parametri a linea posizionali con quelli sotto forma di key=value
-# introdotta la funzione giveHelp()
+# * sostituiti i parametri a linea posizionali con quelli sotto forma di key=value
+# * introdotta la funzione giveHelp()
 #
 # Modifica del 2023.11.30 - Davide - 1.5.1
-# eliminato baco: quando si vuole selezionare un punto e erroneamente si seleziona un area con un solo punto griglia non si riesce
-# piu' a fare unzoom: adesso se l'area rband selezionata ha un lato < 0.1" si intende che l'utente voleva selezionare un punto solo
+# * eliminato baco: quando si vuole selezionare un punto e erroneamente si seleziona un area con un solo punto griglia non si riesce
+#   piu' a fare unzoom: adesso se l'area rband selezionata ha un lato < 0.1" si intende che l'utente voleva selezionare un punto solo
+# * corretta la dicitura dei gradi celsius °C
+# * scorporate le linlen ecc: usa libString.gsf
 #
 #-----------------------------------------------------------------
 #-- _IENS	widget appartenente al radiobox EENS (compreso tra _MENU.EENS.0 e .1), il membro associato e' _ENS=_MENU._IENS
@@ -24,6 +26,8 @@
 function main(args)
  rc = gsfallow("on")
  'reinit'
+#-- libs
+ libString()
 #-- settings
  ensviewOpts()
 #-- input parameters
@@ -66,7 +70,7 @@ return 'quit'
 
 #-----------------------------------------------------------------
 function init(fctl,foro)
- say 'init function opens ctl ens:'fctl' oro:'foro
+ say 'init opens ctl ens:'fctl' oro:'foro
  _version='1.4.1'
  _datavers=20231117
  _XP1=1.5
@@ -651,7 +655,7 @@ say '>>> 'tp_ok' '_DTIMEHR
    _MENU.im='DEG0'
    _MENU.im.DRAW='draw button 'im' 'xm' 'y0' 'width' 'dy' '_MENU.im
    _MENU.im.IST=1
-   _MENU.im.NAM='O°C Temperature Level a.s.l. [m]'
+   _MENU.im.NAM='0`a0`nC Temperature Level a.s.l. [m]'
    if(_AddOroDeg0)
     _MENU.im.FLD='zsfc.2(t=1,e=1)/9.81+deg0l'
 *    _MENU.im.FLD='deg0l+zsfc.2(t=1,e=1)/9.81'
@@ -976,7 +980,7 @@ function getDate(ist)
 return ret
 
 #-----------------------------------------------------------------
-* FUNCTION PLOTMAPS per plottare le mappe ad un tempo prefissato
+* PLOTMAPS per plottare le mappe ad un tempo prefissato
 function plotMaps(enstit)
  say 'ensview::plotMaps('enstit') _MENU._IVAR:'_MENU._IVAR' _GRAPH:'_GRAPH
 
@@ -1107,7 +1111,7 @@ function setPal(name)
 return
 
 #-----------------------------------------------------------------
-* FUNCTION PLOTENVLP per plottare la envelope del trend della variabile
+* PLOTENVLP per plottare la envelope del trend della variabile
 function plotEnvlp(redefine)
  say 'ensview::plotEnvlp('redefine')'
  if(redefine='redefine');redefine=1;endif
@@ -1271,7 +1275,7 @@ say '>>> dummy = 'dummy
 return
 
 #-----------------------------------------------------------------
-* FUNCTION plotArrows disegna la distribuzione degli arrows del vento
+* plotArrows disegna la distribuzione degli arrows del vento
 function plotArrows(Uvar,Vvar)
 #-- se SCALE=0 i vettorini sono tutti lunghi =, altrimenti sono tutti scalati rispetto alla lunghezza di _ENS
  SCALE=1
@@ -1322,7 +1326,7 @@ function plotArrows(Uvar,Vvar)
 return
 
 #-----------------------------------------------------------------
-* FUNCTION MINMAX ritorna minimo e massimo, reali e arrotondati, per il plot corrente
+* MINMAX ritorna minimo e massimo, reali e arrotondati, per il plot corrente
 function minmax(var)
 * say 'ensview::minmax('var')'
  'set gxout stat'
@@ -1343,7 +1347,7 @@ function minmax(var)
   endif
   if(check="DISPLAY");return ''_ERR' '_ERR;endif
  endwhile
- if(min='min');say "FATAL ERROR IN FUNCTION MINMAX, contact Davide";'quit';endif
+ if(min='min');say "FATAL ERROR IN MINMAX, contact Davide";'quit';endif
 return min' 'max' 'cmin' 'cmax' 'cint
 
 #-----------------------------------------------------------------
@@ -1360,188 +1364,13 @@ function Cw2xy(xlon,xlat)
  xp=subwrd(result,3)
  yp=subwrd(result,6)
 return (xp' 'yp)
+
 #-----------------------------------------------------------------
 function Cxy2w(xp,yp)
  'q xy2w 'xp' 'yp
  xlon=subwrd(result,3)
  xlat=subwrd(result,6)
 return (xlon' 'xlat)
-
-#-----------------------------------------------------------------
-* FUNCTION WRDLEN accetta una word; ritorna la sua lunghezza in char
-function wrdlen(word)
- i=0;while (i<200);i=i+1
-  letter=substr(word,i,1)
-  if(letter="");j=i-1;break;endif
- endwhile
-return j
-
-#-----------------------------------------------------------------
-* FUNCTION WRDSEP ritorna una line sostituendo la stringa ci con co
-function wrdsep(line,ci,co)
- if(co='co');co=' ';endif
- nl=wrdlen(ci)
- i=0;linenew='';while(i<wrdlen(line));i=i+1
-  letter=substr(line,i,nl)
-  if(letter=ci)
-   letternew=co;i=i+nl-1
-  else
-   letternew=substr(letter,1,1)
-  endif
-  linenew=linenew%letternew
- endwhile
-return linenew
-
-#-----------------------------------------------------------------
-* FUNCTION RETLEN ritorna la lunghezza in line di una multiple-line
-function retlen(mline)
- i=0;while (i<200);i=i+1
-  line=sublin(mline,i,1)
-  if(line="");j=i-1;break;endif
- endwhile
-return j
-
-#-----------------------------------------------------------------
-* FUNCTION LINLEN ritorna la lunghezza in word di una line
-function linlen(line)
- i=0;while (i<200);i=i+1
-  word=subwrd(line,i,1)
-  if(word="");j=i-1;break;endif
- endwhile
-return j
-
-#-----------------------------------------------------------------
-* FUNCTION GLOBAL
-function global()
-*
-* funziona con q ctlinfo
-*
-* THE GLOABAL VARIABLES SETTED HERE ARE:
-*
-*    _NLON _LON0 _LON1 _DLON
-*    _NLAT _LAT0 _LAT1 _DLAT
-*    _NLEV _LEV.i (i=1,_NLEV)
-*    _NTIME _DTIME _NDAYS _NTDAY
-*    _NVAR _VAR.i _VARLEVS.i _VARTITLE.i (i=1,_NVAR)
-*    _ERR
-SAY=1
-'q ctlinfo'
-out=result
-nlin=retlen(out)
-ilin=0;while(ilin<nlin);ilin=ilin+1
-*say ''ilin':'nlin':'sublin(out,ilin)
- string=sublin(out,ilin)
- def_code=subwrd(string,1)
-*dset
- if(def_code='dset');_DAT=subwrd(string,2);endif
-*title
- if(def_code='title');_TITLE=subwrd(string,2);endif
-*undef
- if(def_code='undef');_ERR=subwrd(string,2);endif
-*xdef
- if(def_code='xdef')
-  code=subwrd(string,3)
-  if(code!='linear');say 'code not supported for 'def_code' ... exiting ';return;endif
-  _NLON=subwrd(string,2)
-  _LON0=subwrd(string,4)
-  _DLON=subwrd(string,5)
-  if(_NLON*_DLON-_LON0=360);diff=_NLON;else;diff=_NLON-1;endif
-  _LON1=_LON0+diff*_DLON
- endif
-*ydef
- if(def_code='ydef')
-  code=subwrd(string,3)
-  if(code!='linear');say 'code not supported for 'def_code' ... exiting ';return;endif
-  _NLAT=subwrd(string,2)
-  _LAT0=subwrd(string,4)
-  _DLAT=subwrd(string,5)
-  diff=_NLAT-1
-  _LAT1=_LAT0+diff*_DLAT
- endif
-*tdef
- if(def_code='tdef')
-  code=subwrd(string,3)
-  if(code!='linear');say 'code not supported for 'def_code' ... exiting ';return;endif
-  _NTIME=subwrd(string,2)
-  _TIME0=subwrd(string,4)
-  AAA=subwrd(string,5)
-  len=wrdlen(AAA)-2
-  len1=len+1
-  _DTIME=substr(AAA,1,len)
-  _TUNIT=substr(AAA,len1,2)
-  if(_TUNIT='mn');_DTIMEHR=_DTIME/60;endif
-  if(_TUNIT='hr');_DTIMEHR=_DTIME;endif
-  if(_TUNIT='dy');_DTIMEHR=_DTIME*24;endif
-  if(_TUNIT='mo');_DTIMEHR=_DTIME*24*30;endif
-  if(_TUNIT='yr');_DTIMEHR=_DTIME*24*365;endif
-  _NDAYS=((_NTIME-1)*_DTIMEHR)/24
-  _NTDAY=24/_DTIMEHR
-  if(SAY);say '_DTIMEHR:'_DTIMEHR;endif
- endif
-*zdef
- if(def_code='zdef')
-  code=subwrd(string,3)
-  if(code='linear')
-   _NLEV=subwrd(string,2)
-   _LEV0=subwrd(string,4)
-   _DLEV=subwrd(string,5)
-   diff=_NLEV-1
-   _LEV1=_LEV0+diff*_DLEV
-   i=0;while(i<_NLEV);i=i+1
-    _LEV.i=_LEV0+(i-1)*_DLEV
-   endwhile
-  else
-   _NLEV=subwrd(string,2)
-   i=0;j=3;while(i<_NLEV);i=i+1;j=j+1
-    check=subwrd(string,j)
-    if(check="")
-     ilin=ilin+1;string=sublin(out,ilin);i=i-1;j=0
-    else
-     _LEV.i=subwrd(string,j)
-     if(SAY);say 'lev.'i':'_LEV.i;endif
-    endif
-   endwhile
-  endif
- endif
-*edef
- if(def_code='edef')
-  _NENS=subwrd(string,2)
- endif
-*vars
- if(def_code='vars')
-  _NVAR=subwrd(string,2)
-  i=0;while(i<_NVAR);i=i+1
-   ilin=ilin+1
-   string=sublin(out,ilin)
-   _VAR.i=subwrd(string,1)
-   _VARLEVS.i=subwrd(string,2)
-   _VARCOD.i=subwrd(string,3)
-   len=linlen(string)
-   j=4;_VARTITLE.i=subwrd(string,j);while(j<len);j=j+1
-    _VARTITLE.i=_VARTITLE.i%' '%subwrd(string,j)
-   endwhile
-*-- accetto le units sia in () che in [] ma la traduco comunque in []
-   nwrd=linlen(_VARTITLE.i)
-   word=subwrd(_VARTITLE.i,nwrd)
-   var=_VAR.i
-   if(substr(word,1,1)='(' & substr(word,wrdlen(word),1)=')')
-    len=strlen(word)-2
-    word = '[' % substr(word,2,len) % ']'
-    _UNITS.var=word
-   endif
-   if(substr(word,1,1)='[' & substr(word,wrdlen(word),1)=']');_UNITS.var=word;say '>>> _UNITS.'var=_UNITS.var;endif
-   if(SAY);say 'var.'i':'_VAR.i':'_VARLEVS.i':'_VARCOD.i':'_VARTITLE.i': _UNITS.'var'='_UNITS.var;endif
-  endwhile
- endif
-endwhile
-
-* legge il modello
-'q file'
-linea=sublin(result,1)
-i=10;while(1);i=i-1
- if(subwrd(linea,i)!="");_MODEL=subwrd(linea,i);break;endif
- endwhile
-return
 
 #-----------------------------------------------------------------
 function getgx()
@@ -1597,7 +1426,7 @@ return
 
 
 #-----------------------------------------------------------------
-* FUNCTION DIFIRST disegna la prima pagina
+* DIFIRST disegna la prima pagina
 function disfirst(file)
 * definisce la pagina iniziale
  yp=2.3;dy=0.3
@@ -2044,7 +1873,7 @@ function colors(arg)
 return
 
 #-----------------------------------------------------------------
-* FUNCTION CHECKMAP per attivare la selezione a mouse di una map in All
+* CHECKMAP per attivare la selezione a mouse di una map in All
 function checkmap(nx,ny,shiftup,shiftdown,xp,yp)
  say 'ensview::checkmap('nx','ny','shiftup','shiftdown','xp','yp')'
  shiftleft=0
