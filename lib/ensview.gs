@@ -414,7 +414,7 @@ function Plot
  if(_CMD='Help')
 *  '!roxterm -e ./grads/giveHelp.sh ensview'
 *  '!xterm -e ./grads/giveHelp.sh ensview'
-  '!./grads/giveHelp.sh ensview'
+  '!./giveHelp.sh ensview'
  endif
 
 return
