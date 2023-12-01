@@ -1,0 +1,4 @@
+function ensviewOpts()
+ _OPT.MemLinStyl=3
+* _OPT.MemLinStyl=1
+return
