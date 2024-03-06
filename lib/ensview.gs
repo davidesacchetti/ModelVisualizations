@@ -38,9 +38,11 @@ function main(args)
   if(substr(word,1,5)="fctl=");nf=wrdlen(word)-5;fctl=substr(word,6,nf);endif
   if(substr(word,1,5)="foro=");nf=wrdlen(word)-5;foro=substr(word,6,nf);endif
   if(substr(word,1,5)="addO=");nf=wrdlen(word)-5;addO=substr(word,6,nf);endif
+  if(substr(word,1,5)="Edim=");nf=wrdlen(word)-5;Edim=substr(word,6,nf);endif
  endwhile
  if(fctl='fctl' | fctl='');giveHelp();endif
  if(foro='foro' | foro='');_AddOroDeg0=0;else;_AddOroDeg0=addO;endif
+ if(Edim='Edim' | Edim='');_Edim='e';else;_Edim=Edim;endif
  init(fctl,foro)
  disfirst(fctl)
  drawButt()
@@ -65,6 +67,7 @@ function giveHelp()
  say '  fctl -> il ctl dello ensemble'
  say '  foro -> il ctl del file contenente la orografia'
  say '  addO -> logical: aggiunge (1) o non (0) la orografia alla variabile dello zero termico'
+ say '  Edim -> dimensione dei membri [e|z] (default: e)'
  '!sleep 2'
 return 'quit'
 
@@ -89,14 +92,16 @@ function init(fctl,foro)
   'quit'
  endif 
  global()
+ if(_Edim='e');_NEdim=_NENS;endif
+ if(_Edim='z');_NEdim=_NLEV;endif
  _x1=1;_x2=_NLON
  _y1=1;_y2=_NLAT
  _t1=2;_t2=_NTIME
- dummy=getNxNy(_NENS)
+ dummy=getNxNy(_NEdim)
  _SHIFT.EENS.NX=subwrd(dummy,1)
  _SHIFT.EENS.NY=subwrd(dummy,2)
-* _SHIFT.EENS.NX=math_int(math_sqrt(_NENS)+0.99)
-* _SHIFT.EENS.NY=math_int(_NENS/_SHIFT.EENS.NX+0.99)
+* _SHIFT.EENS.NX=math_int(math_sqrt(_NEdim)+0.99)
+* _SHIFT.EENS.NY=math_int(_NEdim/_SHIFT.EENS.NX+0.99)
  _SHIFT.TIME.NX=math_int(math_sqrt(_t2-_t1+1)+0.99)
  _SHIFT.TIME.NY=math_int((_t2-_t1+1)/_SHIFT.TIME.NX+0.99)
 #-- apro il file orografico
@@ -163,6 +168,12 @@ function parse1(res)
   notFound=0
   setCmd(imenu)
   if(name='Quit');ret=0;endif
+ endif
+
+#-- other button
+ if(menu='OTHER' & notFound)
+  notFound=0
+  setOther(imenu)
  endif
 
 #-- time button
@@ -288,6 +299,10 @@ function parseres(res)
   if(imenu>=_MENU.EENS.0 & imenu<=_MENU.EENS.1)
    menu='EENS'
   endif
+#-- other button
+  if(imenu>=_MENU.OTHER.0 & imenu<=_MENU.OTHER.1)
+   menu='OTHER'
+  endif
  endif
 
 #-- ho cliccato sulla finestra senza avere schiacciato alcun oggetto
@@ -348,23 +363,26 @@ function Plot
   'set x '_x1' '_x2
   'set y '_y1' '_y2
   'set t '_IST
+  'set mpdset gmthighmap'
   if(_GRAPH='Single' | _GRAPH='Anom')
    if(_GRAPH='Single')
-    'set e '_ENS
+    'set '_Edim' '_ENS
    else
-    'set e 1 '_NENS
+    'set '_Edim' 1 '_NEdim
    endif
    enstit=_ENS
   else
-   'set e 1 '_NENS
-   enstit='1-'_NENS
+   'set '_Edim' 1 '_NEdim
+   enstit='1-'_NEdim
   endif
   'define varDum='_MENU._IVAR.FLD
   'clear'
-  'set e '_ENS
+  'set '_Edim' '_ENS
   _LAST='Map'
   plotMaps(enstit)
   drawRband()
+ else
+  'set mpdset lowres'
  endif
 
 #-- ambiente: caso plot AllMem
@@ -372,13 +390,13 @@ function Plot
   'set x '_x1' '_x2
   'set y '_y1' '_y2
   'set t '_IST
-  'set e 1 '_NENS
+  'set '_Edim' 1 '_NEdim
   'define varDum='_MENU._IVAR.FLD
   'clear'
   _LAST='MultiMap'
-  ens=0;while(ens<_NENS);ens=ens+1
+  ens=0;while(ens<_NEdim);ens=ens+1
    'setpage '_SHIFT.EENS.NX' '_SHIFT.EENS.NY' 'ens' '_SHIFT.UP' '_SHIFT.DOWN' '_SHIFT.LEFT' '_SHIFT.RIGHT
-   'set e 'ens
+   'set '_Edim' 'ens
    plotMaps(ens)
   endwhile
   'set vpage off'
@@ -391,15 +409,15 @@ function Plot
   'set t 1 '_NTIME
   _LAST='MultiMap'
   if(_GRAPH='Single' | _GRAPH='Anom')
-   'set e '_ENS
+   'set '_Edim' '_ENS
    ens=_ENS
   else
-   'set e 1 '_NENS
-   ens='1-'_NENS
+   'set '_Edim' 1 '_NEdim
+   ens='1-'_NEdim
   endif
   'define varDum='_MENU._IVAR.FLD
   'clear'
-  'set e '_ENS
+  'set '_Edim' '_ENS
   iel=0;while(iel<(_t2-_t1+1));iel=iel+1
    'setpage '_SHIFT.TIME.NX' '_SHIFT.TIME.NY' 'iel' '_SHIFT.UP' '_SHIFT.DOWN' '_SHIFT.LEFT' '_SHIFT.RIGHT
    ist=iel+_t1-1
@@ -444,6 +462,29 @@ function setButt
  setTime()
  setEns()
  setCmd()
+return
+
+#-----------------------------------------------------------------
+function setOther(imenu)
+ say 'ensview::setOther('imenu')'
+ if(_MENU.imenu='LigA')
+  'set lon 7.2 10.5'
+  'set lat 43.2 45.3'
+  'q dims'
+  iline=0;while(iline<10);iline=iline+1
+   line=sublin(result,iline)
+   word=subwrd(line,1)
+   if(word='X')
+    _x1=subwrd(line,11)
+    _x2=subwrd(line,13)
+   endif
+   if(word='Y')
+    _y1=subwrd(line,11)
+    _y2=subwrd(line,13)
+    break
+   endif
+  endwhile
+ endif
 return
 
 #-----------------------------------------------------------------
@@ -602,6 +643,7 @@ function defButt
  u10_ok=0
  v10_ok=0
  z500_ok=0
+ flash_ok=0
  iv=0;while(iv<_NVAR);iv=iv+1
   say _'<'_VAR.iv'>'
   if(_VAR.iv='mslp');mslp_ok=1;endif
@@ -615,6 +657,7 @@ function defButt
   if(_VAR.iv='u10');u10_ok=1;endif
   if(_VAR.iv='v10');v10_ok=1;endif
   if(_VAR.iv='gh');z500_ok=1;endif
+  if(_VAR.iv='flash');flash_ok=1;endif
  endwhile
  if(u10_ok & v10_ok);wind_ok=1;else;wind_ok=0;endif
  if(tp1_ok);fact=getFactor('tp1');endif
@@ -657,8 +700,8 @@ say '>>> 'tp_ok' '_DTIMEHR
    _MENU.im.IST=1
    _MENU.im.NAM='0`a0`nC Temperature Level a.s.l. [m]'
    if(_AddOroDeg0)
-    _MENU.im.FLD='zsfc.2(t=1,e=1)/9.81+deg0l'
-*    _MENU.im.FLD='deg0l+zsfc.2(t=1,e=1)/9.81'
+    _MENU.im.FLD='zsfc.2(t=1,'_Edim'=1)/9.81+deg0l'
+*    _MENU.im.FLD='deg0l+zsfc.2(t=1,'_Edim'=1)/9.81'
    else
     _MENU.im.FLD='deg0l'
    endif
@@ -698,6 +741,15 @@ say '>>> 'tp_ok' '_DTIMEHR
    _MENU.im.IST=2
    _MENU.im.NAM='Wind Gust [m/s]'
    _MENU.im.FLD='(fg10)'
+ endif
+#-- FLASH
+ if(flash_ok)
+  im=im+1;xm=xm+width+sep
+   _MENU.im='FLASH'
+   _MENU.im.DRAW='draw button 'im' 'xm' 'y0' 'width' 'dy' '_MENU.im
+   _MENU.im.IST=2
+   _MENU.im.NAM='Flash Probability [%]'
+   _MENU.im.FLD='(flash/100)/((flash/100)+(1-(flash/100))/0.0105)*100'
  endif
 #-- TP cumulata
  if(tp1_ok)
@@ -789,7 +841,7 @@ say '>>> 'tp_ok' '_DTIMEHR
     thr=10
     if(fact!='');thrfact=thr'/(1'fact')';endif
     _MENU.im.NAM='24HR Precipitation > 10 mm PROBABILITY [%]'
-    t_tmp=24/_DTIMEHR;_MENU.im.INT=10;_MENU.im.FLD='sum(const(maskout(const(lon,1),tp-const(tp(t-'t_tmp'),0,-u)-'thrfact'),0,-u),e=1,e='_NENS')*100/'_NENS
+    t_tmp=24/_DTIMEHR;_MENU.im.INT=10;_MENU.im.FLD='sum(const(maskout(const(lon,1),tp-const(tp(t-'t_tmp'),0,-u)-'thrfact'),0,-u),'_Edim'=1,'_Edim'='_NEdim')*100/'_NEdim
   endif
  endif
  _MENU.VARS.1=im
@@ -821,7 +873,7 @@ say '>>> 'tp_ok' '_DTIMEHR
   im=im+1;xm=xm+width+sep
    _MENU.im='Spread'
    _MENU.im.DRAW='draw button 'im' 'xm' 'y0' 'width' 'dy' '_MENU.im
-  if(checkUdx('percentile'))
+  if(checkUdx('percentile') & _Edim='e')
    im=im+1;xm=xm+width+sep
     _MENU.im='Perc80'
     _MENU.im.DRAW='draw button 'im' 'xm' 'y0' 'width' 'dy' '_MENU.im
@@ -853,6 +905,18 @@ say '>>> 'tp_ok' '_DTIMEHR
    _MENU.im.DRAW='draw button 'im' 'xm' 'y0' 'width' 'dy' '_MENU.im
  _MENU.CMD.1=im
 
+#--  other buttons
+ implus=im+1
+ _MENU.OTHER.0=implus
+#-- AREA button
+ xm=x0-width-sep
+* y1=y0-0.35
+ y1=0.2
+ im=im+1;xm=xm+width+sep
+ _MENU.im='LigA'
+ _MENU.im.DRAW='draw button 'im' 'xm' 'y1' 'width' 'dy' '_MENU.im
+ _MENU.OTHER.1=im
+
 #-- Draw botton buttons (time)
  x0=_XP1;x1=_XP2;width=(x1-x0)/(_NTIME-1)
  y0=0.2;dy=0.3
@@ -870,12 +934,12 @@ say '>>> 'tp_ok' '_DTIMEHR
 #-- Draw left buttons (ens)
  widx=0.30
  x0=0.15
- y0=7.6;y1=0.8;width=(y0-y1)/(_NENS-1)
+ y0=7.6;y1=0.8;width=(y0-y1)/(_NEdim-1)
  implus=im+1
  _MENU.EENS.0=implus
  _MENU.implus.SET='set button 1 0 8 7  1 7 7 8  1'
 * 'draw string '%(x0+0.06)%' '%(y0+width*0.7)%' `3e`0'
- i=0;while(i<_NENS);i=i+1
+ i=0;while(i<_NEdim);i=i+1
   im=im+1;ym=y0-(i-1)*width
   _MENU.im=i
   _MENU.im.DRAW='draw button 'im' 'x0' 'ym' 'widx' 'width' '_MENU.im
@@ -907,7 +971,7 @@ function plotrose(ist)
  'set lat '_xlatSel
  'set z 1'
  'set t 'ist
- 'set e 1 '_NENS
+ 'set '_Edim' 1 '_NEdim
  'clear events'
  'run ./grads/drawrose1 -e u10 v10  0.5 20  5 22  11 35  17 96  24 44'
  dummy=getgx()
@@ -938,7 +1002,7 @@ function plothisto(ist)
  'set lat '_xlatSel
  'set z 1'
  'set t 'ist
- 'set e 1 '_NENS
+ 'set '_Edim' 1 '_NEdim
  'run ./grads/histo '_MENU._IVAR.FLD
  dummy=getgx()
  xsiz=subwrd(dummy,1)
@@ -987,15 +1051,15 @@ function plotMaps(enstit)
  name=_MENU._IVAR
  tit=_MENU._IVAR.NAM
  PALETTE=1
- if(_GRAPH='Min');_ACT3='Envelp';field='min(varDum,e=1,e='_NENS')';endif
- if(_GRAPH='Max');_ACT3='Envelp';field='max(varDum,e=1,e='_NENS')';endif
- if(_GRAPH='Mean');_ACT3='Envelp';field='mean(varDum,e=1,e='_NENS')';endif
- if(_GRAPH='Spread');_ACT3='Envelp';field='max(varDum,e=1,e='_NENS')-min(varDum,e=1,e='_NENS')';PALETTE=0;endif
- if(_GRAPH='Sigma');_ACT3='Envelp';field='sqrt((mean(varDum*varDum,e=1,e='_NENS')-mean(varDum,e=1,e='_NENS')*mean(varDum,e=1,e='_NENS'))*'_NENS'/('_NENS'-1))';PALETTE=0;endif
- if(_GRAPH='Perc80');_ACT3='Envelp';field='percentile(varDum,e=1,e='_NENS',80)';endif
+ if(_GRAPH='Min');_ACT3='Envelp';field='min(varDum,'_Edim'=1,'_Edim'='_NEdim')';endif
+ if(_GRAPH='Max');_ACT3='Envelp';field='max(varDum,'_Edim'=1,'_Edim'='_NEdim')';endif
+ if(_GRAPH='Mean');_ACT3='Envelp';field='mean(varDum,'_Edim'=1,'_Edim'='_NEdim')';endif
+ if(_GRAPH='Spread');_ACT3='Envelp';field='max(varDum,'_Edim'=1,'_Edim'='_NEdim')-min(varDum,'_Edim'=1,'_Edim'='_NEdim')';PALETTE=0;endif
+ if(_GRAPH='Sigma');_ACT3='Envelp';field='sqrt((mean(varDum*varDum,'_Edim'=1,'_Edim'='_NEdim')-mean(varDum,'_Edim'=1,'_Edim'='_NEdim')*mean(varDum,'_Edim'=1,'_Edim'='_NEdim'))*'_NEdim'/('_NEdim'-1))';PALETTE=0;endif
+ if(_GRAPH='Perc80');_ACT3='Envelp';field='percentile(varDum,'_Edim'=1,'_Edim'='_NEdim',80)';endif
  if(_GRAPH='All');_ACT3='Select';field='varDum';SETPAGE=1;endif
  if(_GRAPH='Single');_ACT3='Envelp';field='varDum';endif
- if(_GRAPH='Anom');_ACT3='Envelp';field='varDum-mean(varDum,e=1,e='_NENS')';PALETTE=0;endif
+ if(_GRAPH='Anom');_ACT3='Envelp';field='varDum-mean(varDum,'_Edim'=1,'_Edim'='_NEdim')';PALETTE=0;endif
 
 #-- trovo il tempo a cui sono
  date=getDate(_IST)
@@ -1021,14 +1085,13 @@ function plotMaps(enstit)
    'set gxout stream'
    'd u10;v10'
   endif
-  'draw title 'title
  else
   if(name='GUST' | name='WIND')
    'set gxout stream'
-   'd mean(u10,e=1,e='_NENS');mean(v10,e=1,e='_NENS')'
+   'd mean(u10,'_Edim'=1,'_Edim'='_NEdim');mean(v10,'_Edim'=1,'_Edim'='_NEdim')'
   endif
-  'draw title 'title
  endif
+ 'draw title 'title
 
 return
 
@@ -1037,7 +1100,7 @@ function setPal(name)
  say 'ensview::setPal('name')'
  if(name='name' | name='');name=_MENU._IVAR;endif
  subnam=substr(name,1,2)
-#-- _VRANGE: min max spread (null means missing)
+#-- _VRANGE: min max spread (null means missing) for time spaghetti plots
  _CLEVS=''
  _CCOLS=''
  _VRANGE=''
@@ -1107,6 +1170,12 @@ function setPal(name)
   _VRANGE='null null 20'
   pal='standard'
  endif
+ if(name='FLASH')
+  _CCOLS='0 41   42 43 44 45 46 47 48 72 71 70 69 68 67 66 65 64 63 62'
+  _CLEVS='    0.5  1  2  3  4  5  7  10 15 20 25 30 35 40 50 60 70 80 90'
+  _VRANGE='null null 10'
+  pal='standard'
+ endif
  colors(pal)
 return
 
@@ -1127,7 +1196,7 @@ function plotEnvlp(redefine)
 * 'set t '_t1' '_t2
 * 'set t 1 '_NTIME
  'set t 0.5 '%(_NTIME+0.5)
- 'set e 1 '_NENS
+ 'set '_Edim' 1 '_NEdim
  if(redefine)
   'define varDum='_MENU._IVAR.FLD
  endif
@@ -1190,23 +1259,25 @@ say '>>> dummy = 'dummy
  fact=1
  'set strsiz 0.10'
  'set string 1 l'
- 'set e '_ENS
- 'define mm=mean(varDum,e=1,e='_NENS')'
- 'define ss=sqrt( sum( (varDum-mm)*(varDum-mm),e=1,e='_NENS' )/'_NENS-1' )'
+ 'set '_Edim' '_ENS
+ 'define mm=mean(varDum,'_Edim'=1,'_Edim'='_NEdim')'
+ 'define ss=sqrt( sum( (varDum-mm)*(varDum-mm),'_Edim'=1,'_Edim'='_NEdim' )/'_NEdim-1' )'
 #-- statistics: perc25 e perc75
- col=19;yleg=yleg-dyleg
- 'set lfcols 'col' 'col
- 'set gxout linefill'
- 'd percentile(varDum,e=1,e='_NENS',25);percentile(varDum,e=1,e='_NENS',75)'
- 'set line 'col
- 'draw recf 'xleg1' '%(yleg-0.04)%' 0.5 '%(yleg+0.04)
- 'draw string '%(xleg2+dxleg)%' 'yleg' 25-75%'
+ if(_Edim='e')
+  col=19;yleg=yleg-dyleg
+  'set lfcols 'col' 'col
+  'set gxout linefill'
+  'd percentile(varDum,'_Edim'=1,'_Edim'='_NEdim',25);percentile(varDum,'_Edim'=1,'_Edim'='_NEdim',75)'
+  'set line 'col
+  'draw recf 'xleg1' '%(yleg-0.04)%' 0.5 '%(yleg+0.04)
+  'draw string '%(xleg2+dxleg)%' 'yleg' 25-75%'
+ endif
 #-- all members
  col=15
  'set gxout line'
- ens=0;while(ens<_NENS);ens=ens+1
+ ens=0;while(ens<_NEdim);ens=ens+1
   if(ens=_ENS);continue;endif
-  'set e 'ens
+  'set '_Edim' 'ens
   'set ccolor 'col
   'set cmark 0'
   'set cthick 1'
@@ -1216,18 +1287,6 @@ say '>>> dummy = 'dummy
   'd varDum'
  endwhile
  'set cstyle 1'
-*#-- selected member on the top
-* col=4;yleg=yleg-dyleg
-* 'set gxout line'
-* 'set ccolor 'col
-* 'set cmark 5'
-* 'set cthick 6'
-* 'set cstyle 3'
-* 'd varDum(e='_ENS')'
-* 'set cstyle 1'
-* 'set line 'col
-* 'draw line 'xleg1' 'yleg' 0.5 'yleg
-* 'draw string '%(xleg2+dxleg)%' 'yleg' `3e`0:'_ENS
 #-- statistics: err bars
  col=12;yleg=yleg-dyleg
  'set ccolor 'col
@@ -1258,7 +1317,7 @@ say '>>> dummy = 'dummy
  'set cmark 5'
  'set cthick 6'
  'set cstyle 3'
- 'd varDum(e='_ENS')'
+ 'd varDum('_Edim'='_ENS')'
  'set cstyle 1'
  'set line 'col
  'draw line 'xleg1' 'yleg' 0.5 'yleg
@@ -1285,7 +1344,7 @@ function plotArrows(Uvar,Vvar)
  y1=subwrd(dummy,5)
  y2=subwrd(dummy,6)
  'set z 1 2'
- 'set e 1 '_NENS
+ 'set '_Edim' 1 '_NEdim
  'define uu='Uvar
  'define vv='Vvar
  'set z 0.8 1.01';# vettori in alto
@@ -1303,17 +1362,17 @@ function plotArrows(Uvar,Vvar)
   'define wndScale=const(uu,1)';say result
   scaleVal=''
  endif
- ens=0;while(ens<_NENS+1);ens=ens+1
+ ens=0;while(ens<_NEdim+1);ens=ens+1
   say 'set arrscl 0.25 'scaleVal
   'set arrscl 0.25 'scaleVal
 #-- plotto in blu _ENS
-  if(ens=_NENS+1)
-   'set e '_ENS;say result
+  if(ens=_NEdim+1)
+   'set '_Edim' '_ENS;say result
    'set cthick 6'
    'set ccolor 4'
   else
 #-- plotto in grigio
-   'set e 'ens;say result
+   'set '_Edim' 'ens;say result
    'set cthick 1'
    'set ccolor 15'
   endif
@@ -1321,7 +1380,7 @@ function plotArrows(Uvar,Vvar)
  endwhile
  'set xlab on'
  'set ylab on'
- 'set e '_ENS
+ 'set '_Edim' '_ENS
  'set z 1'
 return
 
